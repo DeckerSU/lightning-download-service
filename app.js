@@ -21,6 +21,17 @@ let files = [
   { id: 2, name: 'secret.txt', priceSats: 100 },
 ];
 
+const rateLimit = require('express-rate-limit');
+
+// Apply to /purchase endpoint
+const purchaseLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: {
+    error: 'Too many requests, please try again later.',
+  },
+});
+
 // In-memory storage (replace with a database in production)
 let invoices = {}; // payment_hash => { fileId, paid, payment_request }
 let downloadTokens = {}; // token => { fileId, expires }
@@ -31,7 +42,7 @@ app.get('/files', (req, res) => {
 });
 
 // API route to create a purchase invoice
-app.post('/purchase', async (req, res) => {
+app.post('/purchase', purchaseLimiter, async (req, res) => {
   const fileId = req.body.fileId;
   const file = files.find((f) => f.id === fileId);
 
