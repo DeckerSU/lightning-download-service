@@ -168,3 +168,19 @@ h1 {
   text-decoration: underline;
 }
 
+#invoice-text {
+  width: 90%;
+  margin: 10px auto; /* Center the textarea within the modal */
+  display: block; /* Ensure it takes the full width specified */
+  padding: 10px; /* Optional: Add some padding for better readability */
+  font-size: 14px; /* Optional: Adjust font size for better visibility */
+  line-height: 1.2em; /* Set the line height */
+  min-height: calc(1.2em * 6); /* Minimum height for 6 lines */
+}
+
+/* Center the QR code image */
+#qrcode {
+  display: flex;
+  justify-content: center; /* Centers horizontally */
+  align-items: center;     /* Centers vertically if needed */
+}
