@@ -63,6 +63,7 @@ function showModal(paymentRequest, paymentHash, fileId) {
     <h2>Complete Payment</h2>
     <p>Scan the QR code or copy the invoice to pay.</p>
     <div id="qrcode"></div>
+    <label for="invoice-text">Lightning invoice:</label>
     <textarea id="invoice-text" readonly>${paymentRequest}</textarea>
     <p id="status">Waiting for payment...</p>
   `;
