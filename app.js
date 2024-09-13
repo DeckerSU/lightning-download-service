@@ -14,17 +14,12 @@ const LIMIT_OUTSTANDING_INVOICES = 100;
 const LIMIT_PURCHASE_REQUESTS = 5; // per minute
 const LIMIT_ALL_REQUESTS = 240;
 
+const config = require('./config.json');
 
 app.use(express.json());
 
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Sample files with their prices in satoshis
-let files = [
-  { id: 1, name: 'test.txt', priceSats: 10 },
-  { id: 2, name: 'secret.txt', priceSats: 100 },
-];
 
 const rateLimit = require('express-rate-limit');
 
@@ -52,7 +47,7 @@ let downloadTokens = {}; // token => { fileId, expires }
 
 // API route to get the list of files
 app.get('/files', (req, res) => {
-  res.json(files);
+  res.json(config.files);
 });
 
 // API route to create a purchase invoice
@@ -60,7 +55,7 @@ app.post('/purchase', purchaseLimiter, async (req, res) => {
 
   const userKey = req.ip; // Or use user ID if authenticated
   const fileId = req.body.fileId;
-  const file = files.find((f) => f.id === fileId);
+  const file = config.files.find((f) => f.id === fileId);
 
   if (!file) {
     return res.status(404).json({ error: 'File not found' });
@@ -144,7 +139,7 @@ app.get('/download', apiLimiter, (req, res) => {
     return res.status(403).json({ error: 'Token expired' });
   }
 
-  const file = files.find((f) => f.id === tokenData.fileId);
+  const file = config.files.find((f) => f.id === tokenData.fileId);
 
   if (!file) {
     return res.status(404).json({ error: 'File not found' });

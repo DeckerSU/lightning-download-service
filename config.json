@@ -1,0 +1,6 @@
+{
+  "files": [
+    { "id": 1, "name": "test.txt", "priceSats": 10 },
+    { "id": 2, "name": "secret.txt", "priceSats": 100 }
+  ]
+}
