@@ -56,12 +56,15 @@ app.post('/purchase', purchaseLimiter, async (req, res) => {
       fileId,
       paid: false,
       payment_request: invoice.payment_request,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + invoice.expiry * 1000, // expiry in milliseconds
     };
 
     res.json({
       payment_request: invoice.payment_request,
       payment_hash: invoice.payment_hash,
     });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to create invoice' });
@@ -210,12 +213,33 @@ function roughSizeOfObject(object) {
   return bytes;
 }
 
+function convertTimestamp(timestamp) {
+  const date = new Date(timestamp);
+  return date.toISOString();
+}
+
+// Function to clean up expired invoices
+function cleanUpInvoices() {
+  const now = Date.now();
+  for (const [hash, invoice] of Object.entries(invoices)) {
+    if (invoice.paid) {
+      delete invoices[hash];
+    } else if (invoice.expiresAt < now) {
+      delete invoices[hash];
+    }
+  }
+}
+
 // Catch-all route to serve 'index.html' for client-side routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Schedule the cleanup to run periodically
+setInterval(cleanUpInvoices, 60 * 60 * 1000); // Every hour
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
+
