@@ -10,6 +10,11 @@ const util = require('util'); // For memory size calculation
 const app = express();
 const port = 3000;
 
+const LIMIT_OUTSTANDING_INVOICES = 100;
+const LIMIT_PURCHASE_REQUESTS = 5; // per minute
+const LIMIT_ALL_REQUESTS = 240;
+
+
 app.use(express.json());
 
 // Serve static files from the 'public' directory
@@ -26,7 +31,16 @@ const rateLimit = require('express-rate-limit');
 // Apply to /purchase endpoint
 const purchaseLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute window
-  max: 5, // limit each IP to 5 requests per windowMs
+  max: LIMIT_PURCHASE_REQUESTS, // limit each IP to LIMIT_PURCHASE_REQUESTS requests per windowMs
+  message: {
+    error: 'Too many requests, please try again later.',
+  },
+});
+
+// Apply rate limiting to all API routes
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: LIMIT_ALL_REQUESTS, // limit each IP to LIMIT_ALL_REQUESTS requests per windowMs
   message: {
     error: 'Too many requests, please try again later.',
   },
@@ -43,6 +57,8 @@ app.get('/files', (req, res) => {
 
 // API route to create a purchase invoice
 app.post('/purchase', purchaseLimiter, async (req, res) => {
+
+  const userKey = req.ip; // Or use user ID if authenticated
   const fileId = req.body.fileId;
   const file = files.find((f) => f.id === fileId);
 
@@ -50,15 +66,28 @@ app.post('/purchase', purchaseLimiter, async (req, res) => {
     return res.status(404).json({ error: 'File not found' });
   }
 
+  // Limit outstanding invoices per IP
+  const userInvoices = Object.values(invoices).filter(
+    (inv) => inv.userKey === req.ip && !inv.paid && inv.expiresAt > Date.now()
+  );
+
+  if (userInvoices.length >= LIMIT_OUTSTANDING_INVOICES) {
+    return res.status(429).json({ error: 'Too many outstanding invoices.' });
+  }
+
   try {
     const invoice = await createInvoice(file.priceSats, `Purchase of ${file.name}`);
-    invoices[invoice.payment_hash] = {
+
+    const new_invoice = {
       fileId,
       paid: false,
       payment_request: invoice.payment_request,
       createdAt: Date.now(),
       expiresAt: Date.now() + invoice.expiry * 1000, // expiry in milliseconds
+      userKey,
     };
+
+    invoices[invoice.payment_hash] = new_invoice;
 
     res.json({
       payment_request: invoice.payment_request,
@@ -72,7 +101,7 @@ app.post('/purchase', purchaseLimiter, async (req, res) => {
 });
 
 // API route to check payment status
-app.post('/check-payment', async (req, res) => {
+app.post('/check-payment', apiLimiter, async (req, res) => {
   const payment_hash = req.body.payment_hash;
   const invoice = invoices[payment_hash];
 
@@ -102,7 +131,7 @@ app.post('/check-payment', async (req, res) => {
 });
 
 // API route to handle file downloads
-app.get('/download', (req, res) => {
+app.get('/download', apiLimiter, (req, res) => {
   const token = req.query.token;
   const tokenData = downloadTokens[token];
 
@@ -133,7 +162,7 @@ app.get('/download', (req, res) => {
 });
 
 // New Endpoint: /stats
-app.get('/stats', (req, res) => {
+app.get('/stats', apiLimiter, (req, res) => {
   const invoicesCount = Object.keys(invoices).length;
   const tokensCount = Object.keys(downloadTokens).length;
 
@@ -240,6 +269,6 @@ setInterval(cleanUpInvoices, 60 * 60 * 1000); // Every hour
 
 // Start the server
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running at http://0.0.0.0:${port}`);
 });
 
