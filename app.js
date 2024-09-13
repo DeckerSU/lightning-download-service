@@ -5,6 +5,7 @@ const express = require('express');
 const axios = require('axios');
 const crypto = require('crypto');
 const path = require('path');
+const util = require('util'); // For memory size calculation
 
 const app = express();
 const port = 3000;
@@ -21,7 +22,7 @@ let files = [
 ];
 
 // In-memory storage (replace with a database in production)
-let invoices = {}; // payment_hash => { fileId, paid }
+let invoices = {}; // payment_hash => { fileId, paid, payment_request }
 let downloadTokens = {}; // token => { fileId, expires }
 
 // API route to get the list of files
@@ -40,7 +41,11 @@ app.post('/purchase', async (req, res) => {
 
   try {
     const invoice = await createInvoice(file.priceSats, `Purchase of ${file.name}`);
-    invoices[invoice.payment_hash] = { fileId, paid: false, payment_request: invoice.payment_request };
+    invoices[invoice.payment_hash] = {
+      fileId,
+      paid: false,
+      payment_request: invoice.payment_request,
+    };
 
     res.json({
       payment_request: invoice.payment_request,
@@ -113,6 +118,23 @@ app.get('/download', (req, res) => {
   });
 });
 
+// New Endpoint: /stats
+app.get('/stats', (req, res) => {
+  const invoicesCount = Object.keys(invoices).length;
+  const tokensCount = Object.keys(downloadTokens).length;
+
+  // Estimate memory usage
+  const invoicesSize = roughSizeOfObject(invoices);
+  const tokensSize = roughSizeOfObject(downloadTokens);
+
+  res.json({
+    invoicesCount,
+    tokensCount,
+    invoicesSizeBytes: invoicesSize,
+    tokensSizeBytes: tokensSize,
+  });
+});
+
 // Helper functions
 
 const createInvoice = async (amountSats, memo) => {
@@ -130,9 +152,12 @@ const createInvoice = async (amountSats, memo) => {
 const checkPaymentStatus = async (payment_hash) => {
   const apiKey = process.env.ALBY_API_KEY;
 
-  const response = await axios.get(`https://api.getalby.com/invoices/${payment_hash}`, {
+  const response = await axios.get(
+    `https://api.getalby.com/invoices/${payment_hash}`,
+    {
     headers: { Authorization: `Bearer ${apiKey}` },
-  });
+    }
+  );
 
   const invoiceData = response.data;
 
@@ -142,13 +167,37 @@ const checkPaymentStatus = async (payment_hash) => {
   return { paid: isPaid };
 };
 
-
 const generateDownloadToken = (fileId) => {
   const token = crypto.randomBytes(32).toString('hex');
   const expires = Date.now() + 60 * 60 * 1000; // Token valid for 1 hour
   downloadTokens[token] = { fileId, expires };
   return token;
 };
+
+// Function to estimate the memory size of an object
+function roughSizeOfObject(object) {
+  const objectList = [];
+  const stack = [object];
+  let bytes = 0;
+
+  while (stack.length) {
+    const value = stack.pop();
+
+    if (typeof value === 'boolean') {
+      bytes += 4;
+    } else if (typeof value === 'string') {
+      bytes += value.length * 2;
+    } else if (typeof value === 'number') {
+      bytes += 8;
+    } else if (typeof value === 'object' && value !== null && !objectList.includes(value)) {
+      objectList.push(value);
+      for (const i in value) {
+        stack.push(value[i]);
+      }
+    }
+  }
+  return bytes;
+}
 
 // Catch-all route to serve 'index.html' for client-side routing
 app.get('*', (req, res) => {
