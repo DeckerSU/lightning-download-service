@@ -1,0 +1,20 @@
+<!-- public/background.svg -->
+
+<svg width="200" height="173.205" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="hexPattern" width="300" height="259.81" patternUnits="userSpaceOnUse" patternTransform="scale(0.75)">
+      <g id="hexGroup" fill="none" stroke="#bbb" stroke-width="1" opacity="0.3">
+        <g id="hex">
+          <polygon points="150,0 225,43.301 225,129.903 150,173.205 75,129.903 75,43.301" />
+        </g>
+        <use href="#hex" x="-75" y="129.903" />
+        <use href="#hex" x="75" y="129.903" />
+        <use href="#hex" x="150" y="0" />
+        <use href="#hex" x="300" y="0" />
+        <use href="#hex" x="225" y="129.903" />
+        <use href="#hex" x="375" y="129.903" />
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#hexPattern)" />
+</svg>
