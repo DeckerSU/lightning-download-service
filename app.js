@@ -16,8 +16,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Sample files with their prices in satoshis
 let files = [
-  { id: 1, name: 'file1.pdf', priceSats: 10000 },
-  { id: 2, name: 'file2.pdf', priceSats: 20000 },
+  { id: 1, name: 'test.txt', priceSats: 10 },
+  { id: 2, name: 'secret.txt', priceSats: 100 },
 ];
 
 // In-memory storage (replace with a database in production)
