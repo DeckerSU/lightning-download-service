@@ -11,6 +11,9 @@ const port = 3000;
 
 app.use(express.json());
 
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Sample files with their prices in satoshis
 let files = [
   { id: 1, name: 'file1.pdf', priceSats: 10000 },
@@ -21,10 +24,12 @@ let files = [
 let invoices = {}; // payment_hash => { fileId, paid }
 let downloadTokens = {}; // token => { fileId, expires }
 
+// API route to get the list of files
 app.get('/files', (req, res) => {
   res.json(files);
 });
 
+// API route to create a purchase invoice
 app.post('/purchase', async (req, res) => {
   const fileId = req.body.fileId;
   const file = files.find((f) => f.id === fileId);
@@ -47,6 +52,7 @@ app.post('/purchase', async (req, res) => {
   }
 });
 
+// API route to check payment status
 app.post('/check-payment', async (req, res) => {
   const payment_hash = req.body.payment_hash;
   const invoice = invoices[payment_hash];
@@ -76,6 +82,7 @@ app.post('/check-payment', async (req, res) => {
   }
 });
 
+// API route to handle file downloads
 app.get('/download', (req, res) => {
   const token = req.query.token;
   const tokenData = downloadTokens[token];
@@ -112,7 +119,7 @@ const createInvoice = async (amountSats, memo) => {
   const apiKey = process.env.ALBY_API_KEY;
 
   const response = await axios.post(
-    'https://api.getalby.com/v1/invoices',
+    'https://api.getalby.com/invoices',
     { amount: amountSats, memo },
     { headers: { Authorization: `Bearer ${apiKey}` } }
   );
@@ -123,7 +130,7 @@ const createInvoice = async (amountSats, memo) => {
 const checkPaymentStatus = async (payment_hash) => {
   const apiKey = process.env.ALBY_API_KEY;
 
-  const response = await axios.get(`https://api.getalby.com/v1/payments/${payment_hash}`, {
+  const response = await axios.get(`https://api.getalby.com/payments/${payment_hash}`, {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
 
@@ -137,6 +144,12 @@ const generateDownloadToken = (fileId) => {
   return token;
 };
 
+// Catch-all route to serve 'index.html' for client-side routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Start the server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
