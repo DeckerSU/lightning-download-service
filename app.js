@@ -130,12 +130,18 @@ const createInvoice = async (amountSats, memo) => {
 const checkPaymentStatus = async (payment_hash) => {
   const apiKey = process.env.ALBY_API_KEY;
 
-  const response = await axios.get(`https://api.getalby.com/payments/${payment_hash}`, {
+  const response = await axios.get(`https://api.getalby.com/invoices/${payment_hash}`, {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
 
-  return response.data;
+  const invoiceData = response.data;
+
+  // Check if the invoice is settled
+  const isPaid = invoiceData.settled === true && invoiceData.state === 'SETTLED';
+
+  return { paid: isPaid };
 };
+
 
 const generateDownloadToken = (fileId) => {
   const token = crypto.randomBytes(32).toString('hex');
