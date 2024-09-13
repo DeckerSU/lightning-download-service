@@ -123,3 +123,27 @@ h1 {
 #download-button:hover {
   background-color: #0b7dda;
 }
+
+.intro {
+  background-color: #fff;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+}
+
+.intro p {
+  font-size: 1em;
+  line-height: 1.6;
+  color: #333;
+}
+
+.intro a {
+  color: #2196F3;
+  text-decoration: none;
+}
+
+.intro a:hover {
+  text-decoration: underline;
+}
+
+/* Rest of your styles... */
