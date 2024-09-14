@@ -18,7 +18,7 @@ const config = require('./config.json');
 
 // Import sqlite3 and Set Up the Database Connection
 const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./database.sqlite');
+const db = new sqlite3.Database('./data/database.sqlite');
 // Create the Necessary Tables
 db.serialize(() => {
   // Create invoices table
