@@ -44,6 +44,14 @@ db.serialize(() => {
   `);
 });
 
+// app.use((req, res, next) => {
+//   console.log('Client IP:', req.ip);
+//   next();
+// });
+
+// Trust the first proxy (Nginx)
+app.set('trust proxy', 1);
+
 app.use(express.json());
 
 // Serve static files from the 'public' directory
